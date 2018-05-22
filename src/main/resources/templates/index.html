@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <title>国家</title>
+    <link rel="stylesheet" href="//cdn.bootcss.com/element-ui/1.1.2/theme-default/index.css">
+    <script src="//cdn.bootcss.com/vue/2.1.8/vue.min.js"></script>
+    <script src="//cdn.bootcss.com/element-ui/1.1.2/index.js"></script>
+    <script src="//cdn.bootcss.com/vue-resource/1.0.3/vue-resource.min.js"></script>
+
+</head>
+<body>
+<div id="vm">
+
+    <el-row :gutter="20">
+        <el-col :span="6">
+            <div class="grid-content bg-purple">
+                <el-input
+                        placeholder="请输入姓名查询"
+                        v-model="searchName"
+                        clearable>
+                </el-input>
+            </div>
+        </el-col>
+
+        <el-col :span="6">
+            <div class="grid-content bg-purple">
+                <el-button type="primary" icon="el-icon-search" v-on:click="search()">搜索</el-button>
+
+            </div>
+        </el-col>
+        <el-col :span="6">
+            <div class="grid-content bg-purple">
+                <el-form :model="user">
+                    <el-form-item label="姓名" :label-width="formLabelWidth">
+                        <el-input v-model="user.name" auto-complete="off"></el-input>
+                    </el-form-item>
+                    <el-form-item label="年龄" :label-width="formLabelWidth">
+                        <el-input-number v-model="user.age"  :min="1" :max="120" label="输入年龄"></el-input-number>
+                    </el-form-item>
+                </el-form>
+            </div>
+        </el-col>
+        <el-col :span="6">
+            <div class="grid-content bg-purple">
+                <el-button type="success" @click="addNew()">新增用户</el-button>
+            </div>
+        </el-col>
+    </el-row>
+
+
+
+
+
+    <el-table
+            :data="tableData"
+            stripe
+            style="width: 100%">
+        <el-table-column
+                prop="id"
+                label="ID"
+                width="180">
+        </el-table-column>
+        <el-table-column
+                prop="name"
+                label="姓名"
+                width="180">
+        </el-table-column>
+        <el-table-column
+                prop="age"
+                label="年龄">
+        </el-table-column>
+        <el-table-column
+                inline-template
+                fixed="right"
+                label="操作"
+                width="200">
+            <div>
+                <el-button v-on:click="editH(row)" type="text" size="small">编辑</el-button>
+                <el-button v-on:click="deleteH(row)" type="text" size="small">删除</el-button>
+            </div>
+
+
+        </el-table-column>
+    </el-table>
+
+
+</div>
+
+
+<script>
+    Vue.http.options.emulateHTTP = true;
+    var vm = new Vue({
+        el: '#vm',
+        data: {
+            tableData: [],
+            searchName: '',
+            searchId:'',
+            dialogFormVisible: false,
+            user:{id:"",name:'',age:''},
+            formLabelWidth: '120px',
+        },
+        methods:{
+            getData:function(){
+                this.$http.get("/sh/user/getUsers")
+                    .then(function (response) {
+                    console.log(response);
+                        this.tableData = response.body;
+                    })
+                    .catch(function (response) { console.error(response); });
+            },
+            search:function(){
+                if(this.searchName==''){
+                    return;
+                }
+                this.$http.get("/sh/user/getUserByOneId",{params: {id:this.searchId}})
+                    .then(function (response) {
+                        console.log(response);
+                        this.tableData = [];
+                        if(response.body!=''){
+                            this.tableData.push(response.body);
+                        }
+                    })
+                    .catch(function (response) { console.error(response); });
+            },
+            deleteH:function(row){
+                    this.$confirm('此操作将永久删除该'+row+', 是否继续?', '提示', {
+                        confirmButtonText: '确定',
+                        cancelButtonText: '取消',
+                        type: 'warning'
+                    }).then(() => {
+                        this.$http.get("/sh/user/deleteById",{params: {id:row.id}})
+                            .then(function (response) {
+                                this.$message({
+                                    type: 'success',
+                                    message: '删除成功!'
+                                });
+                                this.getData();
+                            })
+                            .catch(function (response) { console.error(response); });
+
+
+                    }).catch(() => {
+                        this.$message({
+                            type: 'info',
+                            message: '已取消删除'
+                        });
+                    });
+
+                console.log(row);
+
+            },
+            addNew:function(){
+                this.$http.post("/sh/user/addOne",this.user)
+                    .then(function (response) {
+                        this.$message({
+                            type: 'success',
+                            message: '添加成功!'
+                        });
+                        this.getData();
+                        this.user.id = '';
+                    })
+                    .catch(function (response) { console.error(response); });
+            },
+            editH:function(row){
+                this.user = row;
+            }
+
+        },
+        mounted: function () {
+            this.getData();
+        },
+        watch:{
+            searchName(nv,ov){
+                for(var i=0;i<this.tableData.length;i++){
+                    if(this.tableData[i].name == nv){
+                        this.searchId = this.tableData[i].id;
+                    }
+                }
+
+            }
+        }
+
+
+    })
+</script>
+
+
+
+</body>
+</html>
